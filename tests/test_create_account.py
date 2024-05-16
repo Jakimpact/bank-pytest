@@ -6,7 +6,14 @@ from app.bank import Account, Transaction
 def test_create_account(session_isolated, account_factory):
     account1 = account_factory(session_isolated, "Q")
     assert account1.name == "Q"
-    session_isolated.commit.assert_called
+    session_isolated.commit.assert_called()
+
+def test_create_multiple_account(session_isolated, account_factory):
+    account_factory(session_isolated, "Q")
+    account_factory(session_isolated, "L")
+    account_factory(session_isolated, "J")
+    assert len(session_isolated.query(Account).all()) == 3
+    session_isolated.commit.assert_called()
 
 @pytest.mark.session
 def test_create_accounts(session_shared, account_factory):
