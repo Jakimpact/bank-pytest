@@ -35,12 +35,12 @@ class Account(Base):
         if not isinstance(amount, int | float):
             raise TypeError("Integer or float expected")
         if amount <= 0 or self.balance < amount:
-            raise ValueError("Positive withdraw amount expected / positive balance after withdraw expected")
+            raise ValueError("Positive amount expected / positive balance after withdraw expected")
         self.balance -= amount
         Transaction(self.session, "withdraw", amount, self)
         self.session.commit()
 
-    def initiate_transfer(self, amount, other):
+    def initiate_transfer(self, other, amount):
         if not isinstance(amount, int | float):
             raise TypeError("Integer or float expected")
         if amount <= 0 or self.balance < amount:
@@ -75,7 +75,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True)
     type = Column(String, nullable=False)
     amount = Column(Float, CheckConstraint("amount>0"), nullable=False)
-    DateTime = Column(DateTime, default=datetime.now)
+    datetime = Column(DateTime, default=datetime.now)
     initiator_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     receiver_account_id = Column(Integer, ForeignKey("accounts.id"))
 
@@ -86,7 +86,7 @@ class Transaction(Base):
         if not isinstance(initiator_account, Account):
             raise KeyError("registered initiator account required for transaction")
         
-        if type == "withdraw" or type == "transfer":
+        if type == "transfer":
             if initiator_account.get_balance() < amount:
                 raise ValueError("Balance of sender account inferior to amount")
         

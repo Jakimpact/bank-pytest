@@ -5,13 +5,19 @@ from app.bank import Account
 
 
 @pytest.fixture(scope="function")
-def session_isolated():
+def session_function():
+    session = UnifiedAlchemyMagicMock()
+    yield session
+    session.rollback()
+
+@pytest.fixture(scope="module")
+def session_module():
     session = UnifiedAlchemyMagicMock()
     yield session
     session.rollback()
 
 @pytest.fixture(scope="session")
-def session_shared():
+def session_global():
     session = UnifiedAlchemyMagicMock()
     yield session
     session.rollback()

@@ -1,35 +1,38 @@
 import pytest
 
-from app.bank import Account, Transaction
+from app.bank import Account
+import tests.parameters as parameters
 
 
-def test_create_account(session_isolated, account_factory):
-    account1 = account_factory(session_isolated, "Q")
-    assert account1.name == "Q"
-    session_isolated.commit.assert_called()
+@pytest.mark.database
+@pytest.mark.parametrize(parameters.valid_account[0], parameters.valid_account[1])
+def test_create_valid_account(session_function, account_factory, name, initial_balance):
+    account = account_factory(session_function, name, initial_balance)
+    assert account.name == name
+    assert account.balance == initial_balance
+    assert session_function.commit.call_count == 1 # 1 commit for the account created
 
-def test_create_multiple_account(session_isolated, account_factory):
-    account_factory(session_isolated, "Q")
-    account_factory(session_isolated, "L")
-    account_factory(session_isolated, "J")
-    assert len(session_isolated.query(Account).all()) == 3
-    session_isolated.commit.assert_called()
+@pytest.mark.module_session
+@pytest.mark.database
+@pytest.mark.parametrize(parameters.multiple_valid_account[0], parameters.multiple_valid_account[1])
+def test_create_multiple_valid_account(session_module, account_factory, name, expected_num_accounts):
+    account = account_factory(session_module, name)
+    assert account.name == name
+    assert len(session_module.query(Account).all()) == expected_num_accounts
+    assert session_module.commit.call_count == expected_num_accounts # 1, 2 and 3 commit for the 3 account created
 
-@pytest.mark.session
-def test_create_accounts(session_shared, account_factory):
-    account1 = account_factory(session_shared, "Q")
-    account2 = account_factory(session_shared, "L")
-    account3 = account_factory(session_shared, "J")
-    account4 = account_factory(session_shared, "K")
-    assert len(session_shared.query(Account).all()) == 4
+@pytest.mark.module_session
+@pytest.mark.database
+def test_create_another_account(session_module, account_factory):
+    account_factory(session_module, "L")
+    assert len(session_module.query(Account).all()) == 4
+    assert session_module.commit.call_count == 4 # 4 commit for the 3 account created previously and the new one
 
-@pytest.mark.session
-def test_shared2(session_shared, account_factory):
-    account5 = account_factory(session_shared, "E")
-    assert len(session_shared.query(Account).all()) == 5
-
-@pytest.mark.skip(reason="WIP")
-@pytest.mark.session
-def test_modify_accounts(session_shared, account_factory):
-    session_shared.query(Account).filter(Account.name=="E").delete()
-    assert len(session_shared.query(Account).all()) == 4
+@pytest.mark.skip(reason="WIP, le filter ne fonctionne pas et retourne tout les account au lieu d'un")
+@pytest.mark.module_session
+@pytest.mark.database
+def test_delete_account(session_module):
+    account = session_module.query(Account).filter(Account.name == "L").one()
+    session_module.delete(account)
+    session_module.commit()
+    assert len(session_module.query(Account).all()) == 3
